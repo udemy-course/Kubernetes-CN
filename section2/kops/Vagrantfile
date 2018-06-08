@@ -1,0 +1,11 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "centos/7"
+  config.vm.define 'kops-host'
+  config.vm.hostname = 'kops-host'
+  config.vm.provision "shell", privileged: true, path: "./setup.sh"
+end

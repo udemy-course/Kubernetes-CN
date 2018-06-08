@@ -1,0 +1,1 @@
+{"rsync":{"/vagrant":{"type":"rsync","guestpath":"/vagrant","hostpath":"/Users/penxiao/Documents/VSProjects/github/udemy/Kubernetes-CN/section2/kops","disabled":false,"__vagrantfile":true,"owner":"vagrant","group":"vagrant"}}}
