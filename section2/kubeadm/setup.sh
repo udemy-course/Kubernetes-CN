@@ -16,6 +16,7 @@ EOF'
 # install and start docker
 sudo yum install -y docker
 sudo systemctl enable docker && sudo systemctl start docker
+# Verify docker version is 1.12 and greater.
 
 sudo setenforce 0
 
