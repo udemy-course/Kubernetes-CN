@@ -68,11 +68,59 @@ Start Kubelet
 sudo systemctl enable kubelet && sudo systemctl start kubelet
 ```
 
+### kubeadm init on master node
+
 ```bash
 sudo kubeadm init --pod-network-cidr 10.244.0.0/16
 ```
 
-## Reference 
+Output
+
+```bash
+Your Kubernetes master has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of machines by running the following on each node
+as root:
+
+  kubeadm join --token a2dc82.7e936a7ba007f01e 10.0.0.7:6443 --discovery-token-ca-cert-hash sha256:30aca9f9c04f829a13c925224b34c47df0a784e9ba94e132a983658a70ee2914
+```
+
+Please follow the output. and after all is done, we can get all pods running
+
+```bash
+kubectl get pods --all-namespaces
+```
+
+## Join worker node
+
+Please use sudo join
+
+```bash
+sudo kubeadm join 192.168.205.120:6443 --token cg0znx.fm8foahujt843qr1 --discovery-token-ca-cert-hash sha256:ef4a20514c20203f3dc53942fc54867e195d7328e3543d9ee5269176a440bf1c
+```
+
+After that, we can get three nodes ouput on master node
+
+```bash
+[vagrant@k8s-master ~]$ kubectl get nodes
+NAME         STATUS    ROLES     AGE       VERSION
+k8s-master   Ready     master    16h       v1.10.4
+k8s-node1    Ready     <none>    16h       v1.10.4
+k8s-node2    Ready     <none>    16h       v1.10.4
+[vagrant@k8s-master ~]$
+```
+
+## Reference
 
 [https://blog.tekspace.io/setup-kubernetes-cluster-on-centos-7/](https://blog.tekspace.io/setup-kubernetes-cluster-on-centos-7/
 )
