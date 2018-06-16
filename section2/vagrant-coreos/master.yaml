@@ -1,0 +1,155 @@
+#cloud-config
+
+---
+write-files:
+  - path: /etc/conf.d/nfs
+    permissions: '0644'
+    content: |
+      OPTS_RPC_MOUNTD=""
+  - path: /opt/bin/wupiao
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # [w]ait [u]ntil [p]ort [i]s [a]ctually [o]pen
+      [ -n "$1" ] && \
+        until curl -o /dev/null -sIf http://${1}; do \
+          sleep 1 && echo .;
+        done;
+      exit $?
+
+coreos:
+  units:
+    - name: rpcbind.service
+      enable: true
+      command: start
+    - name: rpc-statd.service
+      enable: true
+      command: start
+    - name: etcd-member.service
+      command: start
+      content: |
+        [Unit]
+        Description=etcd
+        Documentation=https://github.com/coreos/etcd
+        [Service]
+        Environment='ETCD_IMAGE_TAG=v3.3.4'
+        Environment='ETCD_DATA_DIR=/var/lib/etcd'
+        Environment='ETCD_USER=etcd'
+        Type=notify
+        Restart=always
+        RestartSec=5s
+        LimitNOFILE=40000
+        TimeoutStartSec=0
+        ExecStart=/usr/lib/coreos/etcd-wrapper --name __NAME__ \
+            --listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
+            --advertise-client-urls http://$public_ipv4:2379,http://$public_ipv4:4001 \
+            --listen-peer-urls http://$private_ipv4:2380,http://$private_ipv4:7001 \
+            --initial-advertise-peer-urls http://$private_ipv4:2380 \
+            --initial-cluster __ETCD_SEED_CLUSTER__
+        [Install]
+        WantedBy=multi-user.target
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 51-docker-mirror.conf
+        - __PROXY_LINE__name: http-proxy.conf
+          __PROXY_LINE__content: |
+            __PROXY_LINE__[Service]
+            __PROXY_LINE__EnvironmentFile=/etc/environment
+        - name: 50-docker-options.conf
+          content: |
+            [Service]
+            Environment='DOCKER_OPTS=--storage-driver=overlay2 __DOCKER_OPTIONS__'
+    - name: early-docker.service
+      drop-ins:
+        - __PROXY_LINE__name: http-proxy.conf
+          __PROXY_LINE__content: |
+            __PROXY_LINE__[Service]
+            __PROXY_LINE__EnvironmentFile=/etc/environment
+    - name: kube-certs.service
+      command: start
+      content: |
+        [Unit]
+        Description=Generate Kubernetes API Server certificates
+        ConditionPathExists=/tmp/make-certs.sh
+        Requires=network-online.target
+        After=network-online.target
+        [Service]
+        ExecStartPre=-/usr/sbin/groupadd -r kube-cert
+        ExecStartPre=/usr/bin/chmod 755 /tmp/make-certs.sh
+        ExecStart=/tmp/make-certs.sh
+        Type=oneshot
+        RemainAfterExit=true
+    - name: hyperkube-download.service
+      command: start
+      content: |
+        [Unit]
+        Description=Download Hyperkube Docker image
+        Requires=docker.service
+        After=docker.service
+        ConditionPathExists=!/vagrant/artifacts/hyperkube___RELEASE__.tar
+        [Service]
+        ExecStart=/usr/bin/docker pull gcr.io/google_containers/hyperkube-amd64:__RELEASE__
+        ExecStart=/usr/bin/docker save --output /vagrant/artifacts/hyperkube___RELEASE__.tar gcr.io/google_containers/hyperkube-amd64:__RELEASE__
+        Type=oneshot
+        RemainAfterExit=true
+    - name: hyperkube-import.service
+      command: start
+      content: |
+        [Unit]
+        Description=Import Hyperkube Docker image
+        Requires=docker.service
+        After=docker.service
+        ConditionPathExists=/vagrant/artifacts/hyperkube___RELEASE__.tar
+        [Service]
+        ExecStart=/usr/bin/docker load --input /vagrant/artifacts/hyperkube___RELEASE__.tar
+        Type=oneshot
+        RemainAfterExit=true
+    - name: kube-kubelet.service
+      command: start
+      content: |
+        [Unit]
+        Description=Kubernetes Kubelet
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Requires=kube-certs.service
+        Wants=hyperkube-download.service hyperkube-import.service
+        After=kube-certs.service hyperkube-download.service hyperkube-import.service
+        [Service]
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+        ExecStartPre=-/usr/bin/docker rm -f kubelet
+        ExecStart=/usr/bin/docker run \
+          --volume=/:/rootfs:ro \
+          --volume=/sys:/sys:ro \
+          --volume=/etc/cni/net.d:/etc/cni/net.d:rw \
+          --volume=/opt/cni/bin:/opt/cni/bin:rw \
+          --volume=/etc/kubernetes:/etc/kubernetes:ro \
+          --volume=/var/lib/calico/:/var/lib/calico:rw \
+          --volume=/var/lib/docker/:/var/lib/docker:rw \
+          --volume=/var/lib/kubelet/:/var/lib/kubelet:shared \
+          --volume=/var/run:/var/run:rw \
+          --net=host \
+          --pid=host \
+          --privileged=true \
+          --name=kubelet \
+          -d \
+          gcr.io/google_containers/hyperkube-amd64:__RELEASE__ \
+            /hyperkube kubelet \
+            --containerized \
+            --address=$private_ipv4 \
+            --register-schedulable=false \
+            --allow-privileged=true \
+            --pod-manifest-path=/etc/kubernetes/manifests \
+            --hostname-override=$public_ipv4 \
+            --cluster_dns=10.100.0.10 \
+            --cluster_domain=__DNS_DOMAIN__ \
+            --kubeconfig=/etc/kubernetes/master-kubeconfig.yaml \
+            --network-plugin=cni \
+            --pod-cidr=__CLUSTER_CIDR__
+        Restart=on-failure
+        RestartSec=10
+        WorkingDirectory=/root/
+        [Install]
+        WantedBy=multi-user.target
+  update:
+    group: __CHANNEL__
+    reboot-strategy: off
