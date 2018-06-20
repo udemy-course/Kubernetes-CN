@@ -70,3 +70,9 @@ Opening kubernetes dashboard in default browser...
 ```
 
 ![image](./minikube_dashboard.png)
+
+## Delete minikube
+
+```bash
+minikube delete && rm -rf ~/.minikube
+```
