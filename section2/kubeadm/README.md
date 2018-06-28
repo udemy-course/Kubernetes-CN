@@ -60,18 +60,17 @@ Server:
 
 ### Start kubelet in three nodes
 
-First, removing the `$KUBELET_NETWORK_ARGS` in `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf`
-
-Start Kubelet
+First, removing the `$KUBELET_NETWORK_ARGS` in `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf` in all three nodes and start Kubelet
 
 ```bash
+sudo vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 sudo systemctl enable kubelet && sudo systemctl start kubelet
 ```
 
 ### kubeadm init on master node
 
 ```bash
-sudo kubeadm init --pod-network-cidr 10.244.0.0/16
+sudo kubeadm init --pod-network-cidr 172.100.0.0/16 --apiserver-advertise-address 192.168.205.120
 ```
 
 Output
@@ -97,8 +96,35 @@ as root:
 
 Please follow the output. and after all is done, we can get all pods running
 
+On master node:
+
 ```bash
-kubectl get pods --all-namespaces
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+flannel addon
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/k8s-manifests/kube-flannel-legacy.yml
+```
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/k8s-manifests/kube-flannel-rbac.yml
+```
+
+Check if all pod are running. then it's OK.
+
+```bash
+[vagrant@k8s-master ~]$ kubectl get pods --all-namespaces
+NAMESPACE     NAME                                 READY     STATUS    RESTARTS   AGE
+kube-system   etcd-k8s-master                      1/1       Running   0          3m
+kube-system   kube-apiserver-k8s-master            1/1       Running   0          2m
+kube-system   kube-controller-manager-k8s-master   1/1       Running   0          3m
+kube-system   kube-dns-86f4d74b45-jdgct            3/3       Running   0          3m
+kube-system   kube-proxy-88kck                     1/1       Running   0          3m
+kube-system   kube-scheduler-k8s-master            1/1       Running   0          3m
 ```
 
 ## Join worker node
@@ -106,19 +132,36 @@ kubectl get pods --all-namespaces
 Please use sudo join
 
 ```bash
-sudo kubeadm join 192.168.205.120:6443 --token cg0znx.fm8foahujt843qr1 --discovery-token-ca-cert-hash sha256:ef4a20514c20203f3dc53942fc54867e195d7328e3543d9ee5269176a440bf1c
+sudo kubeadm join 192.168.205.120:6443 --token buzfuy.8q20f1gleefqjnor --discovery-token-ca-cert-hash sha256:6844c346b1de821d48747e7a3fd6dc6e408ebbc9018553de85f6704949c03b85
 ```
 
 After that, we can get three nodes ouput on master node
 
 ```bash
-[vagrant@k8s-master ~]$ kubectl get nodes
+[vagrant@k8s-master ~]$ kubectl get node
 NAME         STATUS    ROLES     AGE       VERSION
-k8s-master   Ready     master    16h       v1.10.4
-k8s-node1    Ready     <none>    16h       v1.10.4
-k8s-node2    Ready     <none>    16h       v1.10.4
-[vagrant@k8s-master ~]$
+k8s-master   Ready     master    5m        v1.10.5
+k8s-node1    Ready     <none>    40s       v1.10.5
+k8s-node2    Ready     <none>    13s       v1.10.5
 ```
+
+all pod are ok include flannel
+
+```bash
+[vagrant@k8s-master ~]$ kubectl get pods --all-namespaces
+NAMESPACE     NAME                                 READY     STATUS    RESTARTS   AGE
+kube-system   etcd-k8s-master                      1/1       Running   0          5m
+kube-system   kube-apiserver-k8s-master            1/1       Running   0          5m
+kube-system   kube-controller-manager-k8s-master   1/1       Running   0          5m
+kube-system   kube-dns-86f4d74b45-jdgct            3/3       Running   0          5m
+kube-system   kube-flannel-ds-c9p6h                2/2       Running   0          39s
+kube-system   kube-flannel-ds-s6v52                2/2       Running   0          1m
+kube-system   kube-proxy-88kck                     1/1       Running   0          5m
+kube-system   kube-proxy-j2mv6                     1/1       Running   0          39s
+kube-system   kube-proxy-xjhkm                     1/1       Running   0          1m
+kube-system   kube-scheduler-k8s-master            1/1       Running   0          5m
+```
+
 
 ## Reference
 
