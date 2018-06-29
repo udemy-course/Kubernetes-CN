@@ -2,11 +2,8 @@
 
 ## Prepare Three Nodes
 
-Create three nodes Centos7 machines through `Vagrant`
+Create three nodes Centos7 machines on google cloud platform.
 
-```bash
-vagrant up
-```
 
 Then check all three nodes have installed `kubeadm`, `kubelet` and `kubectl`, and Docker is running.
 

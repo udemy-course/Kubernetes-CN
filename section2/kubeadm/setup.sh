@@ -26,8 +26,10 @@ sudo yum install -y kubelet kubeadm kubectl
 sudo bash -c 'cat <<EOF >  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward=1
 EOF'
 sudo sysctl --system
 
+sudo systemctl stop firewalld
 sudo systemctl disable firewalld
 sudo swapoff -a
