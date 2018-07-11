@@ -1,0 +1,38 @@
+apiVersion:  apps/v1
+kind: Deployment
+metadata:
+  name: deploy-helloworld-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helloworld-1
+  template:
+    metadata:
+      labels:
+        app: helloworld-1
+    spec:
+      containers:
+      - name: simple-http
+        image: python:2.7
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args: ["-c", "echo \"<p>Hello 1 from $(hostname)</p>\" > index.html; python -m SimpleHTTPServer 8080"]
+        ports:
+        - name: http
+          containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-helloworld-1
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    nodePort: 30303
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: helloworld-1
