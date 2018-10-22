@@ -12,7 +12,7 @@ spec:
       - name: HOST
         valueFrom:
           configMapKeyRef:
-            name: configmap_demo
+            name: config-1
             key: host
       - name: PORT
         valueFrom:
