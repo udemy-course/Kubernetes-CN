@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do echo hello; sleep 10;done"]
+    env:
+      - name: HOST
+        valueFrom:
+          configMapKeyRef:
+            name: config-1
+            key: host
+      - name: PORT
+        valueFrom:
+          configMapKeyRef:
+            name: config-2
+            key: port
