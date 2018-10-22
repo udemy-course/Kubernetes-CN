@@ -17,5 +17,5 @@ spec:
       - name: PORT
         valueFrom:
           configMapKeyRef:
-            name: configmap_demo
+            name: config-1
             key: port
