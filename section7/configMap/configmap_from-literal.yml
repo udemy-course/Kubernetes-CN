@@ -1,3 +1,4 @@
+# kubectl create configmap config-1 --from-literal=host=1.1.1.1 --from-literal=port=3000
 apiVersion: v1
 kind: ConfigMap
 metadata:

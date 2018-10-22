@@ -1,3 +1,4 @@
+# kubectl create configmap config-2 --from-file=./nginx.conf
 apiVersion: v1
 kind: ConfigMap
 metadata:
