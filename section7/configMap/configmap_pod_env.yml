@@ -12,10 +12,10 @@ spec:
       - name: HOST
         valueFrom:
           configMapKeyRef:
-            name: config-1
+            name: configmap_demo
             key: host
       - name: PORT
         valueFrom:
           configMapKeyRef:
-            name: config-2
+            name: configmap_demo
             key: port

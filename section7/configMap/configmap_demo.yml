@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-1
+  name: configmap_demo
   namespace: default
 data:
   host: 1.1.1.1
